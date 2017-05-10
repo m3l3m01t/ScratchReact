@@ -10,6 +10,10 @@ export var app_styles = StyleSheet.create({
         textAlign: 'left',
         color: '#656565'
     },
+    container: {
+        flex: 1,
+        flexDirection: 'column'
+    },
     flowRight: {
         fontSize: 14,
         textAlign: 'right',

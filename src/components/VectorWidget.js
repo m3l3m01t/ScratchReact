@@ -1,121 +1,258 @@
+var React = require('react');
+/*
+var {
+    width,
+    height
+} = Dimensions.get('window');
+*/
+
+var width = 200;
+var height = 400;
+
+var MORTAR_RADIUS = 5;
+var PARTICLE_RADIUS = 30;
+var PARTICLE_COUNT = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+
+import {
+    AppRegistry,
+    StyleSheet,
+    Animated,
+    View,
+    ART,
+    TouchableWithoutFeedback
+} from 'react-native';
+
+var {
+    Surface,
+    Shape,
+    Path,
+    Group,
+    Transform
+} = ART;
+
+var SHOOTING_COLORS = [
+    'rgb(234,238,112)',
+    'rgb(245,137,12)'
+];
+var PARTICLE_COLORS = [
+    'rgba(54, 17, 52, 100)',
+    'rgba(176, 34, 140, 100)',
+    'rgba(234, 55, 136, 100)',
+    'rgba(229, 107, 112, 100)',
+    'rgba(243, 145, 160, 100)'
+]
+var AnimatedShape = Animated.createAnimatedComponent(Shape);
+var AnimatedGroup = Animated.createAnimatedComponent(Group);
+
+export class FireworkShooter extends React.Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {fireworks: []};
+    }
+
+    adjustShootingFill (_shootingColor, val) {
+        Animated.timing(_shootingColor, {
+            duration: 16,
+            toValue: _shootingColor.__getAnimatedValue() == 0 ? 1 : 0
+        }).start()
+    };
+
+    adjustParticleFill (_particleColor, val) {
+        var _currentFill = _particleColor.__getAnimatedValue(),
+            _particleFill = _currentFill === 5 ? 0 : _currentFill + 1;
+        Animated.timing(_particleColor, {
+            duration: 16,
+            toValue: _particleFill
+        }).start()
+    };
+
+    removeSelf (_shootingPosition) {
+        this.state.fireworks = this.state.fireworks.filter((firework) => firework.shootingPosition !== _shootingPosition);
+        this.setState(this.state);
+    };
+
+    _handleAddFirework (e) {
+        var _shootingPosition = new Animated.ValueXY({x: width / 2, y: height - MORTAR_RADIUS});
+        var _shootingColor = new Animated.Value(0);
+        var _particleColor = new Animated.Value(0);
+        var _particleRadius = new Animated.Value(0);
+        var _coreOpacity = new Animated.Value(1);
+        var _particlePositions = PARTICLE_COUNT.map(() => new Animated.ValueXY({x: 0, y: 0}));
+        var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+            return v.toString(16);
+        });
+
+        this.state.fireworks.push({
+            key: uuid,
+            shootingPosition: _shootingPosition,
+            shootingColor: _shootingColor,
+            particleColor: _particleColor,
+            particleRadius: _particleRadius,
+            coreOpacity: _coreOpacity,
+            particlePositions: _particlePositions
+        });
+
+        var _animatedParticles = [
+            Animated.timing(_particleRadius, {
+                duration: 700,
+                toValue: 1
+            }),
+            Animated.timing(_coreOpacity, {
+                duration: 200,
+                toValue: 0
+            })
+        ]
+        _movingParticles = _particlePositions.map((particle, i) => {
+            var _xy = getXYParticle(PARTICLE_COUNT.length, i, PARTICLE_RADIUS);
+            return Animated.timing(particle, {
+                duration: 250,
+                toValue: _xy
+            });
+        });
+
+        _animatedParticles = _animatedParticles.concat(_movingParticles);
+        Animated.sequence([
+            Animated.timing(_shootingPosition, {
+                duration: 300,
+                toValue: {
+                    y: e.nativeEvent.locationY,
+                    x: e.nativeEvent.locationX
+                }
+            }),
+            Animated.parallel(_animatedParticles)
+        ]).start(this.removeSelf.bind(this, _shootingPosition));
+        _shootingPosition.addListener(this.adjustShootingFill.bind(null, _shootingColor));
+        _particleRadius.addListener(this.adjustParticleFill.bind(null, _particleColor));
+        this.setState(this.state);
+    }
+
+    getFireworks () {
+        return this.state.fireworks.map((firework, i) => {
+            var _shootingFill = firework.shootingColor.interpolate({
+                inputRange: [0, 1],
+                outputRange: SHOOTING_COLORS
+            });
+            var _particleFill = firework.particleColor.interpolate({
+                inputRange: [0, 1, 2, 3, 4],
+                outputRange: PARTICLE_COLORS
+            });
+            return (
+                <AnimatedGroup
+                    x={firework.shootingPosition.x}
+                    y={firework.shootingPosition.y}
+                >
+                    <AnimatedCircle
+                        key={i}
+                        opacity={firework.coreOpacity}
+                        radius={MORTAR_RADIUS}
+                        fill={_shootingFill}
+                    />
+                    <Group>
+                        {
+                            PARTICLE_COUNT.map((v, j) => {
+                                var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                                    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+                                    return v.toString(16);
+                                });
+                                return <AnimatedCircle
+                                    key={uuid}
+                                    x={firework.particlePositions[j].x}
+                                    y={firework.particlePositions[j].y}
+                                    scaleX={firework.particleRadius}
+                                    scaleY={firework.particleRadius}
+                                    radius={PARTICLE_RADIUS}
+                                    fill={_particleFill}
+                                />
+                            })
+                        }
+                    </Group>
+                </AnimatedGroup>
+            );
+        });
+    }
+
+    render () {
+        return (
+            <View style={styles.container}>
+                <TouchableWithoutFeedback onPress={this._handleAddFirework.bind(this)}>
+                    <View>
+                        <Surface width={width} height={height}>
+                            {this.getFireworks()}
+                        </Surface>
+                    </View>
+                </TouchableWithoutFeedback>
+            </View>
+        );
+    }
+};
+
+var styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        flexDirection: 'column'
+    }
+});
+function getXYParticle(total, i, radius) {
+    var angle = 360 / total * i;
+    var x = Math.round((radius * 2) * Math.cos(angle - (Math.PI / 2)));
+    var y = Math.round((radius * 2) * Math.sin(angle - (Math.PI / 2)));
+    return {
+        x: x,
+        y: y
+    }
+}
+//Modified this to use the AnimatedShape we create up above. Thanks Facebook :)
 /**
- * Created by 34372 on 2017/5/10.
- */
-/**
- * Copyright 2013 Facebook, Inc.
+ * Copyright 2013-2014 Facebook, Inc.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
+ *
+ * @providesModule Circle.art
+ * @typechecks
+ *
+ * Example usage:
+ * <Circle
+ *   radius={10}
+ *   stroke="green"
+ *   strokeWidth={3}
+ *   fill="blue"
+ * />
+ *
  */
-"use strict";
-import React from 'react';
-var ReactNative = require('react-native');
 
-var {
-    AppRegistry,
-    ART,
-    TouchableWithoutFeedback
-} = ReactNative;
-
-var {
-    Group,
-    Shape,
-    Surface,
-    Transform
-} = ART;
-
-var MOUSE_UP_DRAG = 0.978;
-var MOUSE_DOWN_DRAG = 0.9;
-var MAX_VEL = 11;
-var CLICK_ACCEL = 3;
-var BASE_VEL = 0.15;
-/**
- * An animated SVG component.
- */
-export var VectorWidget = React.createClass({
-    /**
-     * Initialize state members.
-     */
-    getInitialState: function() {
-        return {degrees: 0, velocity: 0, drag: MOUSE_UP_DRAG};
-    },
-    /**
-     * When the component is mounted into the document - this is similar to a
-     * constructor, but invoked when the instance is actually mounted into the
-     * document. Here's, we'll just set up an animation loop that invokes our
-     * method. Binding of `this.onTick` is not needed because all React methods
-     * are automatically bound before being mounted.
-     */
-    componentDidMount: function() {
-        this._interval = window.setInterval(this.onTick, 1000);
-    },
-    componentWillUnmount: function() {
-        window.clearInterval(this._interval);
-    },
-    onTick: function() {
-        var nextDegrees = this.state.degrees + BASE_VEL + this.state.velocity;
-        var nextVelocity = this.state.velocity * this.state.drag;
-        this.setState({degrees: nextDegrees, velocity: nextVelocity});
-    },
-    /**
-     * This is the "main" method for any component. The React API allows you to
-     * describe the structure of your UI component at *any* point in time.
-     */
-    render: function() {
-        return (
-            <Surface
-                width={700}
-                height={700}
-            >
-                {this.renderGraphic(this.state.degrees)}
-            </Surface>
-        );
-    },
-    /**
-     * Better SVG support for React coming soon.
-     */
-    renderGraphic: function(rotation) {
-        return (
-            <Group
-            >
-                <Group x={210} y={135}>
-                    <Shape fill="rgba(0,0,0,0.1)" d={BORDER_PATH} />
-                    <Shape fill="#7BC7BA" d={BG_PATH} />
-                    <Shape fill="#DCDCDC" d={BAR_PATH} />
-                    <Shape fill="#D97B76" d={RED_DOT_PATH} />
-                    <Shape fill="#DBBB79" d={YELLOW_DOT_PATH} />
-                    <Shape fill="#A6BD8A" d={GREEN_DOT_PATH} />
-                    <Group x={55} y={29}>
-                        <Group rotation={rotation} originX={84} originY={89}>
-                            <Shape fill="#FFFFFF" d={CENTER_DOT_PATH} />
-                            <Group>
-                                <Shape d={RING_ONE_PATH} stroke="#FFFFFF" strokeWidth={8} />
-                                <Shape d={RING_TWO_PATH} transform={RING_TWO_ROTATE} stroke="#FFFFFF" strokeWidth={8} />
-                                <Shape d={RING_THREE_PATH} transform={RING_THREE_ROTATE} stroke="#FFFFFF" strokeWidth={8} />
-                            </Group>
-                        </Group>
-                    </Group>
-                </Group>
-            </Group>
-        );
+/*var AnimatedCircle = React.createClass({
+    displayName: "Circle",
+    render: function () {
+        var radius = this.props.radius;
+        var path = Path().moveTo(0, -radius)
+            .arc(0, radius * 2, radius)
+            .arc(0, radius * -2, radius)
+            .close();
+        return React.createElement(AnimatedShape, React.__spread({}, this.props, {d: path}));
     }
-});
+});*/
 
-var BORDER_PATH = "M3.00191459,4 C1.34400294,4 0,5.34785514 0,7.00550479 L0,220.994495 C0,222.65439 1.34239483,224 3.00191459,224 L276.998085,224 C278.655997,224 280,222.652145 280,220.994495 L280,7.00550479 C280,5.34561033 278.657605,4 276.998085,4 L3.00191459,4 Z M3.00191459,4";
-var BG_PATH = "M3.00191459,1 C1.34400294,1 0,2.34785514 0,4.00550479 L0,217.994495 C0,219.65439 1.34239483,221 3.00191459,221 L276.998085,221 C278.655997,221 280,219.652145 280,217.994495 L280,4.00550479 C280,2.34561033 278.657605,1 276.998085,1 L3.00191459,1 Z M3.00191459,1";
-var BAR_PATH = "M3.00191459,0 C1.34400294,0 0,1.34559019 0,3.00878799 L0,21 C0,21 0,21 0,21 L280,21 C280,21 280,21 280,21 L280,3.00878799 C280,1.34708027 278.657605,0 276.998085,0 L3.00191459,0 Z M3.00191459,0";
-var RED_DOT_PATH = "M12.5,17 C16.0898511,17 19,14.0898511 19,10.5 C19,6.91014895 16.0898511,4 12.5,4 C8.91014895,4 6,6.91014895 6,10.5 C6,14.0898511 8.91014895,17 12.5,17 Z M12.5,17";
-var YELLOW_DOT_PATH = "M31.5,17 C35.0898511,17 38,14.0898511 38,10.5 C38,6.91014895 35.0898511,4 31.5,4 C27.9101489,4 25,6.91014895 25,10.5 C25,14.0898511 27.9101489,17 31.5,17 Z M31.5,17";
-var GREEN_DOT_PATH = "M50.5,17 C54.0898511,17 57,14.0898511 57,10.5 C57,6.91014895 54.0898511,4 50.5,4 C46.9101489,4 44,6.91014895 44,10.5 C44,14.0898511 46.9101489,17 50.5,17 Z M50.5,17";
-var CENTER_DOT_PATH = "M84,105 C92.8365564,105 100,97.8365564 100,89 C100,80.1634436 92.8365564,73 84,73 C75.1634436,73 68,80.1634436 68,89 C68,97.8365564 75.1634436,105 84,105 Z M84,105";
-var RING_ONE_PATH = "M84,121 C130.391921,121 168,106.673113 168,89 C168,71.3268871 130.391921,57 84,57 C37.6080787,57 0,71.3268871 0,89 C0,106.673113 37.6080787,121 84,121 Z M84,121";
-var RING_TWO_PATH = "M84,121 C130.391921,121 168,106.673113 168,89 C168,71.3268871 130.391921,57 84,57 C37.6080787,57 0,71.3268871 0,89 C0,106.673113 37.6080787,121 84,121 Z M84,121";
-var RING_THREE_PATH = "M84,121 C130.391921,121 168,106.673113 168,89 C168,71.3268871 130.391921,57 84,57 C37.6080787,57 0,71.3268871 0,89 C0,106.673113 37.6080787,121 84,121 Z M84,121";
-var RING_TWO_ROTATE = new Transform().translate(84.000000, 89.000000).rotate(-240.000000).translate(-84.000000, -89.000000);
-var RING_THREE_ROTATE = new Transform().translate(84.000000, 89.000000).rotate(-300.000000).translate(-84.000000, -89.000000);
+class AnimatedCircle extends React.Component {
+    constructor(props) {
+        super(props);
 
-// module.exports = VectorWidget;
+        props.displayName = "Circle";
+    }
 
-AppRegistry.registerComponent('VectorWidget', () => VectorWidget);
+    render() {
+        var radius = this.props.radius;
+        var path = Path().moveTo(0, -radius)
+            .arc(0, radius * 2, radius)
+            .arc(0, radius * -2, radius)
+            .close();
+
+        return (<AnimatedShape props = {this.props} d = {path}/>);
+    }
+}
+
+AppRegistry.registerComponent('FireworkShooter', () => FireworkShooter);

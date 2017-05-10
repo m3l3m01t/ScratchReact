@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 
 import {app_styles as styles} from '../styles/PrivateStyles';
-import {VectorWidget} from './VectorWidget';
+// import {VectorWidget} from './VectorWidget';
+import {FireworkShooter} from './VectorWidget';
 
 export class ArtScreen extends React.Component {
     static navigationOptions = {
@@ -28,7 +29,7 @@ export class ArtScreen extends React.Component {
 
         return (
             <View style={styles.hbox}>
-                    <VectorWidget style={styles.vector}/>
+                    <FireworkShooter/>
             </View>
         )
     }
