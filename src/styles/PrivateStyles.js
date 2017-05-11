@@ -1,8 +1,8 @@
 /**
  * Created by 34372 on 2017/5/10.
  */
-import React from 'react';
-import {StyleSheet} from 'react-native';
+import React from "react";
+import {StyleSheet} from "react-native";
 
 export var app_styles = StyleSheet.create({
     description: {
@@ -26,6 +26,7 @@ export var app_styles = StyleSheet.create({
         marginBottom: 2,
         flexDirection: 'column',
         justifyContent: 'center',
+        alignItems: 'stretch',
         flex: 1,
     },
 
