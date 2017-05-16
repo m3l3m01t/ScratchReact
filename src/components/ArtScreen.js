@@ -62,26 +62,28 @@ export class ArtScreen extends React.Component {
                     rotate: spin
                 }]
             }]}>
-                <Animated.Text>{this.state.spin}</Animated.Text>
                 <Animated.View style={{
                     backgroundColor: 'blue', justifyContent: 'center',
                     alignItems: 'center',
+                    paddingBottom: 10,
+                    paddingTop: 10,
+                    paddingLeft: 10,
 
-                    width: 360,
-                    height: 240,
-                    borderRadius: 13,
+                    borderRadius: 8,
                     position: 'relative',
 
                 }}>
-                    <FireworkShooter/>
+                    <Animated.Text style={{width: 200}}>{this.state.spin}</Animated.Text>
+
+                    {/*<FireworkShooter/>*/}
                     <Animated.View style={{
                         backgroundColor: 'red',
-                        width: 240,
-                        height: 120,
-                        borderRadius: 13,
+                        width: 10,
+                        height: 10,
+                        borderRadius: 4,
                         transform: [{
                             rotate: spin1
-                        }, {translateY: 120}]
+                        }, {translateY: 10}]
                     }}/>
                 </Animated.View>
             </Animated.View>
